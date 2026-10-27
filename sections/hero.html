@@ -217,6 +217,7 @@ new GLTFLoader().load(C2_MODEL_URL,(gltf)=>{
 },undefined,(e)=>{console.error(e);loading.textContent='C2 model failed to load';});
 
 function heroProgress(){
+  if(c2ExternalProgress !== null) return c2ExternalProgress;
   const max=document.documentElement.scrollHeight-innerHeight;
   return max>0?THREE.MathUtils.clamp(scrollY/max*2.0,0,3):10;
 }
@@ -240,4 +241,19 @@ function renderHero(){
 renderHero();
 
 
+
+/* C2DG Wix scroll bridge: the Wix page owns vertical scrolling. */
+let c2ExternalProgress = null;
+const c2Channel = 'c2dg-animation-v1';
+window.addEventListener('message', (event) => {
+  // Accept Wix HTML-component messages. Do not use this listener for sensitive data.
+  const d = event.data;
+  if (!d || d.channel !== c2Channel || d.type !== 'SCROLL_PROGRESS') return;
+  if (typeof d.progress !== 'number' || !Number.isFinite(d.progress)) return;
+  c2ExternalProgress = Math.max(0, Math.min(1, d.progress));
+  if (typeof updateHero === 'function' && document.querySelector('#hero')) updateHero();
+  if (typeof updateFlipbook === 'function' && document.querySelector('#design-flipbook')) updateFlipbook();
+  if (typeof updateDrone === 'function' && document.querySelector('#drone')) updateDrone();
+});
+window.parent.postMessage({channel:c2Channel,type:'READY'},'*');
 </script></body></html>

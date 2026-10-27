@@ -197,7 +197,7 @@ const droneRenderer=new THREE.WebGLRenderer({canvas:droneCanvas,antialias:true,a
 const droneScene=new THREE.Scene();const droneCamera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.01,1000);droneCamera.position.set(0,1.4,18);droneCamera.lookAt(0,1.4,0);droneScene.add(new THREE.HemisphereLight(0xffffff,0x23313a,2.6));const dk=new THREE.DirectionalLight(0xffffff,4);dk.position.set(6,10,7);droneScene.add(dk);const df=new THREE.DirectionalLight(0x79a9c2,1.8);df.position.set(-7,4,-5);droneScene.add(df);
 const flightGroup=new THREE.Group();droneScene.add(flightGroup);let droneRoot=null,droneReady=false,droneRotors=[];const DRONE_MODEL_URL='./models/drone.glb';
 new GLTFLoader().load(DRONE_MODEL_URL,gltf=>{droneRoot=gltf.scene;droneRoot.scale.setScalar(1.0);/* model correction: rotate the aircraft so rotor discs are horizontal */droneRoot.rotation.x=Math.PI/2;flightGroup.add(droneRoot);droneRoot.traverse(o=>{if(/^ROTOR_/.test(o.name))droneRotors.push(o)});droneReady=true;droneLoading.style.display='none';updateDrone()},xhr=>{if(xhr.total)droneLoading.textContent='Loading aerial experience… '+Math.round(xhr.loaded/xhr.total*100)+'%'},e=>{console.error(e);droneLoading.textContent='Place drone.glb in ./models/'});
-function droneProgressValue(){const r=photoSection.getBoundingClientRect();const travel=photoSection.offsetHeight-innerHeight;return travel>0?THREE.MathUtils.clamp(-r.top/travel,0,1):0}
+function droneProgressValue(){if(c2ExternalProgress !== null) return c2ExternalProgress;const r=photoSection.getBoundingClientRect();const travel=photoSection.offsetHeight-innerHeight;return travel>0?THREE.MathUtils.clamp(-r.top/travel,0,1):0}
 function updateDrone(){
   if(updateDrone.lastCaptureIndex===undefined) updateDrone.lastCaptureIndex=-1;
   const p=droneProgressValue();if(!droneReady)return;
@@ -229,4 +229,19 @@ function updateDrone(){
 }
 addEventListener('scroll',updateDrone,{passive:true});addEventListener('resize',()=>{droneRenderer.setSize(innerWidth,innerHeight);droneCamera.aspect=innerWidth/innerHeight;droneCamera.updateProjectionMatrix();updateDrone()});function renderDrone(){droneRenderer.render(droneScene,droneCamera);requestAnimationFrame(renderDrone)}renderDrone();
 
+
+/* C2DG Wix scroll bridge: the Wix page owns vertical scrolling. */
+let c2ExternalProgress = null;
+const c2Channel = 'c2dg-animation-v1';
+window.addEventListener('message', (event) => {
+  // Accept Wix HTML-component messages. Do not use this listener for sensitive data.
+  const d = event.data;
+  if (!d || d.channel !== c2Channel || d.type !== 'SCROLL_PROGRESS') return;
+  if (typeof d.progress !== 'number' || !Number.isFinite(d.progress)) return;
+  c2ExternalProgress = Math.max(0, Math.min(1, d.progress));
+  if (typeof updateHero === 'function' && document.querySelector('#hero')) updateHero();
+  if (typeof updateFlipbook === 'function' && document.querySelector('#design-flipbook')) updateFlipbook();
+  if (typeof updateDrone === 'function' && document.querySelector('#drone')) updateDrone();
+});
+window.parent.postMessage({channel:c2Channel,type:'READY'},'*');
 </script></body></html>

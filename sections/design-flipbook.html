@@ -210,7 +210,7 @@ const designImages=[
   'https://static.wixstatic.com/media/beab6e_afe371e1d92448c581a976645de0cfef~mv2_d_1512_2016_s_2.jpg',
   'https://static.wixstatic.com/media/4f980b_889c252a78424bfbbffc129f3ece5f83~mv2.jpg'
 ];
-function flipSectionProgress(){const r=flipSection.getBoundingClientRect();const travel=flipSection.offsetHeight-innerHeight;return travel>0?THREE.MathUtils.clamp(-r.top/travel,0,1):0}
+function flipSectionProgress(){if(c2ExternalProgress !== null) return c2ExternalProgress;const r=flipSection.getBoundingClientRect();const travel=flipSection.offsetHeight-innerHeight;return travel>0?THREE.MathUtils.clamp(-r.top/travel,0,1):0}
 function updateFlipbook(){
   if(!flipStack)return;
   const p=flipSectionProgress(), pages=[...flipStack.querySelectorAll('.flip-paper')], printEnd=.56;
@@ -232,4 +232,19 @@ function updateFlipbook(){
 }
 addEventListener('scroll',updateFlipbook,{passive:true});addEventListener('resize',updateFlipbook);updateFlipbook();
 
+
+/* C2DG Wix scroll bridge: the Wix page owns vertical scrolling. */
+let c2ExternalProgress = null;
+const c2Channel = 'c2dg-animation-v1';
+window.addEventListener('message', (event) => {
+  // Accept Wix HTML-component messages. Do not use this listener for sensitive data.
+  const d = event.data;
+  if (!d || d.channel !== c2Channel || d.type !== 'SCROLL_PROGRESS') return;
+  if (typeof d.progress !== 'number' || !Number.isFinite(d.progress)) return;
+  c2ExternalProgress = Math.max(0, Math.min(1, d.progress));
+  if (typeof updateHero === 'function' && document.querySelector('#hero')) updateHero();
+  if (typeof updateFlipbook === 'function' && document.querySelector('#design-flipbook')) updateFlipbook();
+  if (typeof updateDrone === 'function' && document.querySelector('#drone')) updateDrone();
+});
+window.parent.postMessage({channel:c2Channel,type:'READY'},'*');
 </script></body></html>
