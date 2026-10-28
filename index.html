@@ -595,7 +595,7 @@ document.querySelectorAll('.work-submenu-list a').forEach(a=>a.addEventListener(
 window.addEventListener('load',()=>{updateNavOffset();if(location.hash&&location.hash!=='#contact'){setTimeout(()=>navigateToHash(location.hash),80)}});
 
 /* Wix native navigation bridge: section links reach this nested iframe through the Wix HTML wrapper. */
-const c2SectionIds=new Set(['hero','our-work','branding','design-flipbook','photography','videography','our-story','our-mission']);
+const c2SectionIds=new Set(['hero','our-work','branding','design-flipbook','drone','photography','videography','our-story','our-mission']);
 window.addEventListener('message',event=>{
   if(event.origin!==window.location.origin && event.origin!=='https://creative-c2dg.wixstudio.com')return;
   const d=event.data;
@@ -607,7 +607,23 @@ window.addEventListener('message',event=>{
     if(c2SectionIds.has(d.section))navigateToHash('#'+d.section);
   }
 });
-window.addEventListener('load',()=>window.parent.postMessage({channel:'c2dg-animation-v1',type:'READY'},'*'));
+// Repeat READY briefly: Wix's onMessage handler may attach after the iframe loads.
+let c2ReadyCount=0;
+const c2ReadyTimer=setInterval(()=>{
+  window.parent.postMessage({channel:'c2dg-animation-v1',type:'READY'},'*');
+  if(++c2ReadyCount>=20)clearInterval(c2ReadyTimer);
+},500);
+
+// When the visitor reaches the bottom of the embedded experience, hand the next
+// downward wheel gesture to Wix's native Contact section.
+let c2LastHandoff=0;
+window.addEventListener('wheel',event=>{
+  if(event.deltaY<=0 || document.body.style.overflow==='hidden')return;
+  const remaining=document.documentElement.scrollHeight-(window.scrollY+window.innerHeight);
+  if(remaining>12 || Date.now()-c2LastHandoff<1400)return;
+  c2LastHandoff=Date.now();
+  window.parent.postMessage({channel:'c2dg-animation-v1',type:'CONTACT'},'*');
+},{passive:true});
 
 /* Videography background video */
 const VIDEO_URL = 'https://video.wixstatic.com/video/47f173_c6e8c68c65244c438dab9c88472930d7/1080p/mp4/file.mp4';
